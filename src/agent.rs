@@ -2,7 +2,7 @@ use rig::{completion::Prompt, providers::openai, agent::Agent};
 use anyhow::Result;
 
 pub struct Ada {
-    agent: Agent<openai::CompletionModel>,  // Spécifions le type générique
+    agent: Agent<openai::CompletionModel>,
 }
 
 impl Ada {

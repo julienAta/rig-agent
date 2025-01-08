@@ -7,18 +7,25 @@ use mongodb::{
     Client as MongoClient, Collection,
 };
 use rig::providers::openai::{self, TEXT_EMBEDDING_ADA_002};
-use rig::embeddings::EmbeddingsBuilder;
+use rig::embeddings::{Embed, EmbeddingsBuilder, EmbedError, TextEmbedder};
+use rig::vector_store::VectorStoreIndex;
 use rig_mongodb::{MongoDbVectorIndex, SearchParams};
 use serde::Deserialize;
 use anyhow::Result;
+use uuid::Uuid;
 
-// Structure pour stocker nos connaissances
-#[derive(Embed, Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug)]
 struct Knowledge {
     #[serde(rename = "_id")]
     id: String,
-    #[embed]
     definition: String,
+}
+
+impl Embed for Knowledge {
+    fn embed(&self, embedder: &mut TextEmbedder) -> Result<(), EmbedError> {
+        embedder.embed(self.definition.clone());
+        Ok(())
+    }
 }
 
 #[tokio::main]
@@ -64,7 +71,7 @@ async fn main() -> Result<(), anyhow::Error> {
         if input.starts_with("learn ") {
             let new_knowledge = input[6..].trim();
             let knowledge = Knowledge {
-                id: uuid::Uuid::new_v4().to_string(),
+                id: Uuid::new_v4().to_string(),
                 definition: new_knowledge.to_string(),
             };
 
@@ -84,7 +91,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 })
                 .collect::<Vec<_>>();
 
-            collection.insert_many(mongo_document, None).await?;
+            collection.insert_many(mongo_document).await?;
             println!("Added new knowledge to memory!");
             continue;
         }
